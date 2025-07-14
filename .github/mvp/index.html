@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>City Explorer Global – MVP</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <style>body{margin:0;font-family:sans-serif}#map{height:100vh}</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+  mapboxgl.accessToken = '__MAPBOX_TOKEN__'; // Placeholder for the token
+  const map = new mapboxgl.Map({container:'map', style:'mapbox://styles/mapbox/light-v11', center:[0, 20], zoom: 2});
+  fetch('mvp/indicators.json')
+    .then(r => r.json())
+    .then(data => {
+      const coords = {
+        Vancouver: [-123.1,49.25], Madinah: [39.6,24.5], Nis: [21.9,43.3],
+        Queretaro: [-100.4,20.6], Logan: [-111.8,41.7], Quito: [-78.5,-0.2],
+        'Udon Thani': [102.8,17.4], Bhubaneswar: [85.8,20.3], Kampala: [32.6,0.3]
+      };
+      data.forEach(d => {
+        new mapboxgl.Marker({color:'red'})
+          .setLngLat(coords[d.city])
+          .setPopup(new mapboxgl.Popup().setHTML(`<b>${d.city}</b><br>${d.indicator}: ${d.value}`))
+          .addTo(map);
+      });
+    });
+</script>
+</body>
+</html>
