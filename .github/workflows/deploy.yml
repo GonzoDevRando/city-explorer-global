@@ -23,7 +23,7 @@ jobs:
           node-version: '18'
       
       - name: Build
-        run: node build.js
+        run: node .github/workflows/build.js
         env:
           MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
       
