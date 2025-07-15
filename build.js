@@ -3,9 +3,8 @@ const fs = require('fs');
 // Read the HTML file
 let html = fs.readFileSync('index.html', 'utf8');
 
-// Replace the token placeholder with the actual token from environment variable
-const token = process.env.MAPBOX_TOKEN || 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
-html = html.replace('MAPBOX_TOKEN', token);
+// Replace MAPBOX_TOKEN with the actual token from GitHub Secrets
+html = html.replace('MAPBOX_TOKEN', process.env.MAPBOX_TOKEN);
 
 // Write the updated HTML
 fs.writeFileSync('index.html', html);
