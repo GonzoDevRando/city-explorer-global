@@ -21,15 +21,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      # Your build steps here
+      - name: Setup Node
+      - uses: actions/setup-node@v4
+      - with:
+          node-version: '18'
+
       - name: Build
-        run: |
-          # Your build commands
+        run: node build.js
+        env: 
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist  # or your build output directory
+          path: ./mvp
 
   deploy:
     runs-on: ubuntu-latest
