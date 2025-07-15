@@ -1,7 +1,4 @@
-index.html
-
 <!doctype html>
-
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
@@ -11,13 +8,21 @@ index.html
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
   <style>body{margin:0;font-family:sans-serif}#map{height:100vh}</style>
 </head>
-
 <body>
 <div id="map"></div>
 <script>
-  mapboxgl.accessToken = '__MAPBOX_TOKEN__'; // Placeholder for the token
-  const map = new mapboxgl.Map({container:'map', style:'mapbox://styles/mapbox/light-v11', center:[0, 20], zoom: 2});
-  fetch('mvp/indicators.json')
+  // Use Mapbox's demo token for testing (or get your own free token)
+  mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+  
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/light-v11',
+    center: [0, 20],
+    zoom: 2
+  });
+  
+  // Changed from 'mvp/indicators.json' to 'indicators.json'
+  fetch('indicators.json')
     .then(r => r.json())
     .then(data => {
       const coords = {
@@ -31,7 +36,8 @@ index.html
           .setPopup(new mapboxgl.Popup().setHTML(`<b>${d.city}</b><br>${d.indicator}: ${d.value}`))
           .addTo(map);
       });
-    });
+    })
+    .catch(err => console.error('Error loading indicators:', err));
 </script>
 </body>
 </html>
