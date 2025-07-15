@@ -22,10 +22,12 @@
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      max-width: 300px;
+      max-width: 350px;
+      max-height: 80vh;
+      overflow-y: auto;
     }
     .info-panel h2 {
-      margin: 0 0 10px 0;
+      margin: 0 0 15px 0;
       color: #333;
     }
     .city-list {
@@ -33,31 +35,40 @@
       padding: 0;
       margin: 0;
     }
-    .city-list li {
-      padding: 8px 0;
-      border-bottom: 1px solid #eee;
+    .city-item {
+      margin-bottom: 15px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
     }
-    .city-list li:hover {
-      background: #f5f5f5;
+    .city-item:hover {
+      background: #e9ecef;
+      transform: translateX(-5px);
     }
-    .indicator {
-      font-size: 12px;
+    .city-name {
+      font-weight: 600;
+      font-size: 16px;
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+    .indicators {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+    }
+    .indicator-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+    .indicator-name {
       color: #666;
     }
-    .legend {
-      position: absolute;
-      bottom: 30px;
-      left: 20px;
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .legend h3 {
-      margin: 0 0 10px 0;
-      font-size: 14px;
+    .indicator-value {
+      font-weight: 500;
+      color: #2c3e50;
     }
   </style>
 </head>
@@ -67,11 +78,6 @@
   <h2>City Indicators</h2>
   <ul class="city-list" id="cityList"></ul>
 </div>
-<div class="legend">
-  <h3>Global City Explorer</h3>
-  <p style="margin: 5px 0; font-size: 12px;">Click on markers to see details</p>
-  <p style="margin: 5px 0; font-size: 12px;">🔴 City with data</p>
-</div>
 <script>
   mapboxgl.accessToken = 'MAPBOX_TOKEN';
   
@@ -79,8 +85,7 @@
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v12',
     center: [0, 20],
-    zoom: 2,
-    projection: 'mercator'
+    zoom: 2
   });
 
   // Add navigation controls
@@ -99,85 +104,78 @@
     Kampala: [32.6, 0.3]
   };
 
-  // Store markers for flying to them later
-  const markers = {};
-
   // Load and display data
   fetch('indicators.json')
     .then(r => r.json())
     .then(data => {
-      console.log('Loaded data:', data);
+      console.log('Raw data:', data);
       
-      // Create city list in sidebar
+      // Group indicators by city
+      const citiesData = {};
+      data.forEach(d => {
+        if (!citiesData[d.city]) {
+          citiesData[d.city] = [];
+        }
+        citiesData[d.city].push({
+          indicator: d.indicator,
+          value: d.value
+        });
+      });
+      
+      console.log('Grouped data:', citiesData);
+      
+      // Create markers and sidebar for each city
       const cityList = document.getElementById('cityList');
       
-      data.forEach(d => {
-        // Create marker
+      Object.entries(citiesData).forEach(([city, indicators]) => {
+        // Create marker with all indicators in popup
+        const popupContent = `
+          <div style="padding: 10px; min-width: 200px;">
+            <h3 style="margin: 0 0 10px 0; color: #2c3e50;">${city}</h3>
+            ${indicators.map(ind => `
+              <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                <span style="color: #666;">${ind.indicator}:</span>
+                <strong style="margin-left: 10px;">${ind.value}</strong>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        
         const marker = new mapboxgl.Marker({ color: '#ff4444' })
-          .setLngLat(coords[d.city])
-          .setPopup(new mapboxgl.Popup().setHTML(`
-            <div style="padding: 10px;">
-              <h3 style="margin: 0 0 10px 0;">${d.city}</h3>
-              <p style="margin: 5px 0;"><strong>${d.indicator}:</strong> ${d.value}</p>
-              <p style="margin: 5px 0; font-size: 12px; color: #666;">Click to zoom in</p>
-            </div>
-          `))
+          .setLngLat(coords[city])
+          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent))
           .addTo(map);
         
-        markers[d.city] = marker;
-        
-        // Add to sidebar list
+        // Create sidebar entry
         const li = document.createElement('li');
+        li.className = 'city-item';
         li.innerHTML = `
-          <strong>${d.city}</strong><br>
-          <span class="indicator">${d.indicator}: ${d.value}</span>
+          <div class="city-name">${city}</div>
+          <div class="indicators">
+            ${indicators.map(ind => `
+              <div class="indicator-item">
+                <span class="indicator-name">${ind.indicator}:</span>
+                <span class="indicator-value">${ind.value}</span>
+              </div>
+            `).join('')}
+          </div>
         `;
+        
         li.onclick = () => {
           map.flyTo({
-            center: coords[d.city],
+            center: coords[city],
             zoom: 10,
             duration: 2000
           });
           marker.togglePopup();
         };
+        
         cityList.appendChild(li);
-      });
-      
-      // Add click handler to markers
-      Object.values(markers).forEach(marker => {
-        marker.getElement().addEventListener('click', () => {
-          const lngLat = marker.getLngLat();
-          map.flyTo({
-            center: [lngLat.lng, lngLat.lat],
-            zoom: 10,
-            duration: 2000
-          });
-        });
       });
     })
     .catch(err => {
       console.error('Error loading indicators:', err);
-      alert('Error loading city data. Check console for details.');
     });
-
-  // Add some nice map interactions
-  map.on('load', () => {
-    // Add 3D buildings
-    map.addLayer({
-      'id': '3d-buildings',
-      'source': 'composite',
-      'source-layer': 'building',
-      'filter': ['==', 'extrude', 'true'],
-      'type': 'fill-extrusion',
-      'minzoom': 15,
-      'paint': {
-        'fill-extrusion-color': '#aaa',
-        'fill-extrusion-height': ['get', 'height'],
-        'fill-extrusion-base': ['get', 'min_height'],
-        'fill-extrusion-opacity': 0.6
-      }
-    });
-  });
 </script>
 </body>
 </html>
