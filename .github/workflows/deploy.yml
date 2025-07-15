@@ -24,7 +24,7 @@ jobs:
 
       - name: Inject MAPBOX_TOKEN
         run: |
-          sed "s/__MAPBOX_TOKEN__/${{ secrets.MAPBOX_TOKEN }}/g" mvp/index.html > index.html
+          sed 's/__MAPBOX_TOKEN__/${{ secrets.MAPBOX_TOKEN }}/g' mvp/index.html > mvp/index.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
