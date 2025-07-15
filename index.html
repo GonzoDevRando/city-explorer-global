@@ -6,38 +6,178 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
-  <style>body{margin:0;font-family:sans-serif}#map{height:100vh}</style>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    #map {
+      height: 100vh;
+    }
+    .info-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      max-width: 300px;
+    }
+    .info-panel h2 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    .city-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .city-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .city-list li:hover {
+      background: #f5f5f5;
+    }
+    .indicator {
+      font-size: 12px;
+      color: #666;
+    }
+    .legend {
+      position: absolute;
+      bottom: 30px;
+      left: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .legend h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
 <div id="map"></div>
+<div class="info-panel">
+  <h2>City Indicators</h2>
+  <ul class="city-list" id="cityList"></ul>
+</div>
+<div class="legend">
+  <h3>Global City Explorer</h3>
+  <p style="margin: 5px 0; font-size: 12px;">Click on markers to see details</p>
+  <p style="margin: 5px 0; font-size: 12px;">🔴 City with data</p>
+</div>
 <script>
-  // Use Mapbox's demo token for testing (or get your own free token)
   mapboxgl.accessToken = 'MAPBOX_TOKEN';
   
   const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/light-v11',
+    style: 'mapbox://styles/mapbox/streets-v12',
     center: [0, 20],
-    zoom: 2
+    zoom: 2,
+    projection: 'mercator'
   });
+
+  // Add navigation controls
+  map.addControl(new mapboxgl.NavigationControl());
   
-  // Changed from 'mvp/indicators.json' to 'indicators.json'
+  // City coordinates
+  const coords = {
+    Vancouver: [-123.1, 49.25],
+    Madinah: [39.6, 24.5],
+    Nis: [21.9, 43.3],
+    Queretaro: [-100.4, 20.6],
+    Logan: [-111.8, 41.7],
+    Quito: [-78.5, -0.2],
+    'Udon Thani': [102.8, 17.4],
+    Bhubaneswar: [85.8, 20.3],
+    Kampala: [32.6, 0.3]
+  };
+
+  // Store markers for flying to them later
+  const markers = {};
+
+  // Load and display data
   fetch('indicators.json')
     .then(r => r.json())
     .then(data => {
-      const coords = {
-        Vancouver: [-123.1,49.25], Madinah: [39.6,24.5], Nis: [21.9,43.3],
-        Queretaro: [-100.4,20.6], Logan: [-111.8,41.7], Quito: [-78.5,-0.2],
-        'Udon Thani': [102.8,17.4], Bhubaneswar: [85.8,20.3], Kampala: [32.6,0.3]
-      };
+      console.log('Loaded data:', data);
+      
+      // Create city list in sidebar
+      const cityList = document.getElementById('cityList');
+      
       data.forEach(d => {
-        new mapboxgl.Marker({color:'red'})
+        // Create marker
+        const marker = new mapboxgl.Marker({ color: '#ff4444' })
           .setLngLat(coords[d.city])
-          .setPopup(new mapboxgl.Popup().setHTML(`<b>${d.city}</b><br>${d.indicator}: ${d.value}`))
+          .setPopup(new mapboxgl.Popup().setHTML(`
+            <div style="padding: 10px;">
+              <h3 style="margin: 0 0 10px 0;">${d.city}</h3>
+              <p style="margin: 5px 0;"><strong>${d.indicator}:</strong> ${d.value}</p>
+              <p style="margin: 5px 0; font-size: 12px; color: #666;">Click to zoom in</p>
+            </div>
+          `))
           .addTo(map);
+        
+        markers[d.city] = marker;
+        
+        // Add to sidebar list
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <strong>${d.city}</strong><br>
+          <span class="indicator">${d.indicator}: ${d.value}</span>
+        `;
+        li.onclick = () => {
+          map.flyTo({
+            center: coords[d.city],
+            zoom: 10,
+            duration: 2000
+          });
+          marker.togglePopup();
+        };
+        cityList.appendChild(li);
+      });
+      
+      // Add click handler to markers
+      Object.values(markers).forEach(marker => {
+        marker.getElement().addEventListener('click', () => {
+          const lngLat = marker.getLngLat();
+          map.flyTo({
+            center: [lngLat.lng, lngLat.lat],
+            zoom: 10,
+            duration: 2000
+          });
+        });
       });
     })
-    .catch(err => console.error('Error loading indicators:', err));
+    .catch(err => {
+      console.error('Error loading indicators:', err);
+      alert('Error loading city data. Check console for details.');
+    });
+
+  // Add some nice map interactions
+  map.on('load', () => {
+    // Add 3D buildings
+    map.addLayer({
+      'id': '3d-buildings',
+      'source': 'composite',
+      'source-layer': 'building',
+      'filter': ['==', 'extrude', 'true'],
+      'type': 'fill-extrusion',
+      'minzoom': 15,
+      'paint': {
+        'fill-extrusion-color': '#aaa',
+        'fill-extrusion-height': ['get', 'height'],
+        'fill-extrusion-base': ['get', 'min_height'],
+        'fill-extrusion-opacity': 0.6
+      }
+    });
+  });
 </script>
 </body>
 </html>
