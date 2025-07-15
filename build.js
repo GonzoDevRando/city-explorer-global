@@ -1,18 +1,13 @@
 const fs = require('fs');
-const path = require('path');
 
-// Go up two levels: workflows -> .github -> root
-const rootDir = path.join(__dirname, '..', '..');
-const indexPath = path.join(rootDir, 'mvp', 'index.html');
-const mapboxToken = process.env.MAPBOX_TOKEN;
+// Read the HTML file
+let html = fs.readFileSync('index.html', 'utf8');
 
-fs.readFile(indexPath, 'utf8', (err, data) => {
-  if (err) {
-    return console.error(err);
-  }
-  const result = data.replace(/__MAPBOX_TOKEN__/g, mapboxToken);
-  fs.writeFile(indexPath, result, 'utf8', (err) => {
-    if (err) return console.error(err);
-    console.log('Mapbox token injected successfully');
-  });
-});
+// Replace the token placeholder with the actual token from environment variable
+const token = process.env.MAPBOX_TOKEN || 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+html = html.replace('MAPBOX_TOKEN', token);
+
+// Write the updated HTML
+fs.writeFileSync('index.html', html);
+
+console.log('Build complete - token replaced');
